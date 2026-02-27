@@ -1,39 +1,59 @@
-from src.data_loader import DataLoader
-from src.alpha_research import AlphaResearch
-from src.risk_engine import RiskEngine
-from src.backtester import Backtester
-import datetime
+import pandas as pd
+import numpy as np
+from portfolio.optimizer import BlackLittermanOptimizer
+from regime.hmm_classifier import RegimeClassifierHMM
+from risk.kelly_sizing import KellySizer
+from execution.simulator import ExecutionSimulator
+from backtest.engine import BacktestEngine
 
-def run_mvp():
-    # 1. Initialize Components
-    loader = DataLoader(config_path='config/settings.yaml')
-    alpha = AlphaResearch()
-    risk = RiskEngine(confidence_level=0.99)
-    tester = Backtester(initial_capital=100000.0)
+def run_risk_mesh():
+    \"\"\"
+    Main entry point for Aladdin-Risk-Mesh orchestrator.
+    Ownership: Copyright (c) 2026 VDG Venkatesh. All Rights Reserved.
+    PROPRIETARY AND CONFIDENTIAL. UNAUTHORIZED USE PROHIBITED.
+    \"\"\"
+    print(\"--- Starting Aladdin-Risk-Mesh Pipeline ---\")
     
-    # 2. Fetch Data
-    tickers = ['AAPL', 'MSFT', 'GOOGL', 'SPY']
-    start_date = '2023-01-01'
-    end_date = datetime.date.today().strftime('%Y-%m-%d')
+    # 1. Data Mocking
+    dates = pd.date_range('2020-01-01', periods=500)
+    assets = ['AAPL', 'MSFT', 'GOOGL', 'AMZN']
+    returns = pd.DataFrame(np.random.normal(0.0005, 0.02, (500, len(assets))), index=dates, columns=assets)
+    market_caps = pd.Series([2.5e12, 2.2e12, 1.5e12, 1.3e12], index=assets)
     
-    price_data = loader.fetch_equity_data(tickers, start_date, end_date)
+    # 2. Regime Detection
+    print(\"Step 1: Detecting Market Regime...\")
+    regime_clf = RegimeClassifierHMM(n_regimes=2)
+    regime_clf.fit(returns)
+    current_regime = regime_clf.predict(returns).iloc[-1]
+    print(f\"Current Detected Regime: {current_regime}\")
     
-    # For MVP, we use SPY for signal generation
-    spy_data = price_data['SPY']
+    # 3. Optimization
+    print(\"Step 2: Black-Litterman Optimization...\")
+    bl_opt = BlackLittermanOptimizer(assets, market_caps)
+    views = pd.Series({'AAPL': 0.05, 'AMZN': -0.05})
+    cov = returns.cov() * 252
+    weights = bl_opt.optimize(views, cov)
     
-    # 3. Generate Signals
-    signals = alpha.generate_macro_signal(spy_data)
+    # 4. Sizing
+    print(\"Step 3: Kelly Sizing...\")
+    sizer = KellySizer(fraction=0.5)
+    strategy_stats = {'win_rate': 0.55, 'win_loss_ratio': 1.1}
+    final_positions = sizer.size_portfolio(weights, strategy_stats)
     
-    # 4. Run Backtest
-    results = tester.run_backtest(spy_data, signals)
+    # 5. Execution Simulation
+    print(\"Step 4: Order Simulation...\")
+    exec_sim = ExecutionSimulator(slippage_bps=5)
+    impact = exec_sim.simulate_order(\"AAPL\", 1000, 150.0)
+    print(f\"Simulated execution impact: {impact:.4f}\")
     
-    # 5. Risk Assessment
-    var_99 = risk.calculate_var(results['returns'].dropna())
+    # 6. Backtesting
+    print(\"Step 5: Portfolio Performance Evaluation...\")
+    engine = BacktestEngine()
+    port_returns = returns.dot(weights)
+    report = engine.generate_report(port_returns)
+    print(report)
     
-    print(f"--- {loader.config['fund_name']} Report ---")
-    print(f"Final Portfolio Value: ${results['total'].iloc[-1]:.2f}")
-    print(f"Total Return: {(results['total'].iloc[-1]/100000.0 - 1)*100:.2f}%")
-    print(f"99% Value at Risk (Daily): {var_99*100:.2f}%")
+    print(\"--- Aladdin-Risk-Mesh Pipeline Completed ---\")
 
-if __name__ == "__main__":
-    run_mvp()
+if __name__ == \"__main__\":
+    run_risk_mesh()

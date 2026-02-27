@@ -182,6 +182,68 @@ class PositionLimitChecker:
         return pd.DataFrame(rows)
 
 
+
+# ---------------------------------------------------------------------------
+class PositionLimiter:
+    """
+    Convenience wrapper around PositionLimitChecker.
+    Accepts top-level limit parameters directly as keyword arguments
+    so that callers can instantiate without building a LimitConfig first.
+
+    Example
+    -------
+    limiter = PositionLimiter(max_leverage=2.0)
+    limiter.check_leverage(weights)
+    """
+
+    def __init__(
+        self,
+        max_leverage: float = 2.0,
+        max_single_long: float = 0.10,
+        max_single_short: float = 0.10,
+        max_sector_net: float = 0.25,
+        max_sector_gross: float = 0.40,
+        max_net_exposure: float = 0.50,
+        max_daily_var_99: float = 0.02,
+        max_stress_loss: float = 0.15,
+        max_country_gross: float = 0.30,
+    ):
+        config = LimitConfig(
+            max_gross_leverage=max_leverage,
+            max_single_long=max_single_long,
+            max_single_short=max_single_short,
+            max_sector_net=max_sector_net,
+            max_sector_gross=max_sector_gross,
+            max_net_exposure=max_net_exposure,
+            max_daily_var_99=max_daily_var_99,
+            max_stress_loss=max_stress_loss,
+            max_country_gross=max_country_gross,
+        )
+        self._checker = PositionLimitChecker(config)
+        self.max_leverage = max_leverage
+
+    def check_leverage(self, weights: pd.Series) -> List[LimitBreach]:
+        """Check gross and net leverage limits."""
+        self._checker.breaches = []
+        self._checker.check_leverage(weights)
+        return self._checker.breaches
+
+    def run_all_checks(
+        self,
+        weights: pd.Series,
+        sector_map: Dict[str, str],
+        country_map: Optional[Dict[str, str]] = None,
+        var_99: float = 0.0,
+        stress_loss: float = 0.0,
+    ) -> List[LimitBreach]:
+        """Run full suite of limit checks."""
+        return self._checker.run_all_checks(
+            weights, sector_map, country_map, var_99, stress_loss
+        )
+
+    def summary(self) -> pd.DataFrame:
+        """Return breach summary as DataFrame."""
+        return self._checker.summary()
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     tickers    = ["SPY", "TLT", "EEM", "GLD", "HYG", "XOM", "AAPL"]

@@ -1,0 +1,14 @@
+fund_name: "Aladdin Risk Mesh MVP"
+base_currency: "USD"
+risk_parameters:
+  max_drawdown: 0.15
+  var_confidence_level: 0.99
+  lookback_period: 252
+  max_leverage: 3.0
+data_sources:
+  equity: "yfinance"
+  fixed_income: "fred"
+  macro_indicators: "world_bank"
+universe:
+  regions: ["US", "EU", "APAC", "EM"]
+  asset_classes: ["Equities", "FX", "Commodities", "Rates"]

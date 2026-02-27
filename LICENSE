@@ -1,7 +1,20 @@
+PROPRIETARY AND CONFIDENTIAL: INTELLECTUAL PROPERTY NOTICE
+
 Copyright (c) 2026 VDG Venkatesh. All rights reserved.
 
-This software and its documentation are the property of VDG Venkatesh. 
+1. OWNERSHIP AND INTELLECTUAL PROPERTY RIGHTS
+This software, including but not limited to its source code, proprietary algorithms (specifically the Aladdin Risk Mesh cross-asset factor models, regime detection logic, and automated governance layers), architecture, documentation, and logic (collectively, the "Software"), is the exclusive property of VDG Venkatesh. All title, ownership rights, and intellectual property rights in and to the Software remain with VDG Venkatesh. This Software is protected by copyright laws, trade secret laws, and international treaty provisions.
 
-No part of this project may be used, reproduced, modified, or distributed in any other projects, systems, or platforms without explicit written permission from the owner. 
+2. RESTRICTION ON USE, REPRODUCTION, AND DISTRIBUTION
+No license, right, or interest is granted to any person or entity to use, copy, modify, distribute, or create derivative works of this Software for any purpose, whether commercial or non-commercial, without the prior express written authorization of VDG Venkatesh. This includes, but is not limited to, using any part of the Software in other projects, open-source repositories, or commercial platforms.
 
-For inquiries regarding permissions, please contact VDG Venkatesh.
+3. NO REPRODUCTION IN OTHER PROJECTS
+This Software and its underlying methodologies are strictly prohibited from being integrated, utilized, or referenced in any other projects, systems, or repositories without a formal licensing agreement. Any unauthorized use will be considered a breach of proprietary rights.
+
+4. CONFIDENTIALITY
+The methods, logic, and structure of this Software constitute valuable trade secrets. Unauthorized access, disclosure, or dissemination of this Software is strictly prohibited and may result in severe civil and criminal penalties.
+
+5. RESERVATION OF RIGHTS
+VDG Venkatesh reserves the right to enforce these terms to the maximum extent permitted by law, including seeking injunctive relief and damages for any infringement of intellectual property rights.
+
+For licensing inquiries and permission requests, contact VDG Venkatesh.

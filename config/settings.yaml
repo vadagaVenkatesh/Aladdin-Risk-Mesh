@@ -1,14 +1,129 @@
-fund_name: "Aladdin Risk Mesh MVP"
+fund_name: "Aladdin Risk Mesh - Basel IV Enhanced"
 base_currency: "USD"
+
+# Basel IV / FRTB Risk Parameters
 risk_parameters:
   max_drawdown: 0.15
   var_confidence_level: 0.99
+  es_confidence_level: 0.975  # FRTB Expected Shortfall at 97.5%
   lookback_period: 252
   max_leverage: 3.0
+  var_horizon_days: 10  # FRTB standard 10-day horizon
+  scaling_factor: 1.0  # Square root of time scaling for multi-day VaR
+  output_floor_ratio: 0.72  # Basel IV output floor (72.5% of standardized)
+  nmrf_capital_addon: 0.01  # Non-modellable risk factor capital add-on
+  sa_ccr_alpha: 1.4  # SA-CCR alpha multiplier
+  
 data_sources:
   equity: "yfinance"
   fixed_income: "fred"
   macro_indicators: "world_bank"
+  
 universe:
   regions: ["US", "EU", "APAC", "EM"]
   asset_classes: ["Equities", "FX", "Commodities", "Rates"]
+  
+# Multi-Asset Basel Classification
+asset_classes:
+  equities:
+    market_risk_bucket: "equity"
+    sa_ccr_category: "equity"
+    supervisory_factor: 0.32  # SA-CCR equity supervisory factor
+    trading_book: true
+    banking_book: false
+    liquidity_tier: 1  # High liquidity
+    modellable: true
+    standardized_rw: 0.30  # Simplified standardized risk weight
+    
+  rates:
+    market_risk_bucket: "interest_rate"
+    sa_ccr_category: "interest_rate"
+    supervisory_factor: 0.005  # SA-CCR rates supervisory factor (varies by tenor)
+    trading_book: true
+    banking_book: false
+    liquidity_tier: 1
+    modellable: true
+    standardized_rw: 0.015
+    
+  fx:
+    market_risk_bucket: "fx"
+    sa_ccr_category: "fx"
+    supervisory_factor: 0.04  # SA-CCR FX supervisory factor
+    trading_book: true
+    banking_book: false
+    liquidity_tier: 1
+    modellable: true
+    standardized_rw: 0.08
+    
+  commodities:
+    market_risk_bucket: "commodity"
+    sa_ccr_category: "commodity"
+    supervisory_factor: 0.18  # SA-CCR commodity supervisory factor (varies by commodity)
+    trading_book: true
+    banking_book: false
+    liquidity_tier: 2  # Medium liquidity
+    modellable: false  # Often non-modellable under FRTB
+    standardized_rw: 0.40
+    
+  credit:
+    market_risk_bucket: "credit"
+    sa_ccr_category: "credit"
+    supervisory_factor: 0.05  # SA-CCR credit supervisory factor
+    trading_book: true
+    banking_book: false
+    liquidity_tier: 2
+    modellable: true
+    standardized_rw: 0.08
+
+# Model Risk Management Configuration
+model_governance:
+  model_registry_enabled: true
+  model_validation_required: true
+  regime_ood_threshold: 0.30  # Out-of-distribution threshold for regime detection
+  ml_signal_downweight_ood: 0.50  # Downweight ML signals by 50% when OOD
+  backtesting_lookback_days: 252
+  performance_monitoring_frequency: "daily"
+  governance_report_frequency: "monthly"
+  human_approval_required: true
+  
+# Execution and Trading Constraints
+execution:
+  max_daily_volume_participation: 0.10  # Max 10% of daily volume
+  max_intraday_var_breach: 0.02  # Max 2% intraday VaR breach tolerance
+  stress_loss_limit_daily: 0.05  # Max 5% daily stress loss
+  liquidity_horizon_days:
+    equities: 10
+    rates: 20
+    fx: 10
+    commodities: 20
+    credit: 60
+
+# Capital Efficiency Optimization
+capital_optimization:
+  enable_capital_cost_objective: true
+  lambda_capital_cost: 0.10  # Weight on capital cost in optimizer objective
+  capital_budget_total: 1000000  # Total trading book capital budget (USD)
+  capital_budget_equity_sleeve: 400000
+  capital_budget_rates_sleeve: 300000
+  capital_budget_fx_sleeve: 200000
+  capital_budget_commodity_sleeve: 100000
+  capital_efficiency_rebal_trigger: 0.20  # Rebalance if efficiency drops 20%
+
+# Regime-Aware Risk Budgets
+regime_risk_budgets:
+  goldilocks:
+    max_leverage: 3.0
+    var_limit_pct: 0.02
+    stress_limit_pct: 0.10
+  inflationary_growth:
+    max_leverage: 2.5
+    var_limit_pct: 0.025
+    stress_limit_pct: 0.12
+  stagflation:
+    max_leverage: 2.0
+    var_limit_pct: 0.03
+    stress_limit_pct: 0.15
+  recession:
+    max_leverage: 1.5
+    var_limit_pct: 0.035
+    stress_limit_pct: 0.18

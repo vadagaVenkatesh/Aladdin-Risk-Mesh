@@ -1,0 +1,97 @@
+# ============================================================
+# Aladdin-Risk-Mesh — Docker Compose
+# Copyright (c) Venkatesh Vadaga. All Rights Reserved.
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # --- FastAPI Risk Service ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: aladdin-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - NUMBA_CACHE_DIR=/tmp/numba_cache
+      - OMP_NUM_THREADS=4
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql://aladdin:secret@postgres:5432/riskdb
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./data:/app/data:ro
+      - numba_cache:/tmp/numba_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - aladdin-net
+
+  # --- Redis Cache (market data, signals) ---
+  redis:
+    image: redis:7-alpine
+    container_name: aladdin-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - aladdin-net
+
+  # --- PostgreSQL (trade logs, risk history) ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: aladdin-postgres
+    environment:
+      POSTGRES_USER: aladdin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: riskdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - aladdin-net
+
+  # --- Airflow Scheduler (pipeline DAGs) ---
+  airflow:
+    image: apache/airflow:2.8.0-python3.11
+    container_name: aladdin-airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://aladdin:secret@postgres:5432/riskdb
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - PYTHONPATH=/app
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./:/app
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    command: standalone
+    restart: unless-stopped
+    networks:
+      - aladdin-net
+
+volumes:
+  redis_data:
+  postgres_data:
+  numba_cache:
+
+networks:
+  aladdin-net:
+    driver: bridge
